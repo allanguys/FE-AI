@@ -1,0 +1,69 @@
+<html>
+    <head>
+        <title>bodypix</title>
+        <meta charset="utf-8">
+        <script src="https://game.gtimg.cn/images/tgideas/tf/tfjs.1.0.0.js"></script>
+        <script src="https://game.gtimg.cn/images/tgideas/tf/body-pix.1.0.0.js"></script>
+    </head>
+    <body>
+            <h1>人物分隔</h1>
+            <div id="wrap" style="width:640px;height:480px;position:relative;">
+                    <video id="video" width="640" height="480" autoplay></video>
+                    <canvas id="draw" style="position: absolute;left:0;top:0;z-index:9;width:640px;height:480px"></canvas>
+                    <img src="https://ossweb-img.qq.com/images/game/brand/game-logo.png" id="logo" alt="" style="display:none">
+            </div>
+            <p>https://github.com/tensorflow/tfjs-models/tree/master/body-pix</p>
+            
+
+            <script>
+                    var net = null;
+                    var c = document.getElementById('draw');
+                    var ctx = c.getContext('2d');
+                     var video = document.getElementById('video');
+                     c.width = 640;
+                     c.height = 480;
+                    window.addEventListener("DOMContentLoaded", function() {
+                        
+                        var mediaConfig =  {     
+                            'audio': false,
+                            'video': {
+                            facingMode: 'user',
+                            width: 640,
+                            height: 480,
+                            }
+                        };
+                        if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                            navigator.mediaDevices.getUserMedia(mediaConfig).then(function(stream) {
+                                video.srcObject = stream;
+                                video.play();
+                                console.log(video)
+                                loadModel()
+                            }).catch(e=>{
+                                document.getElementsByTagName('h1')[0].innerHTML = '人物分隔示例 - 请使用有摄像头的PC体验 '
+                                document.getElementById('wrap').style.display = 'none'
+                            });
+                        }
+                    }, false);
+                    async function loadModel(){
+                        net = await bodyPix.load();
+                    }
+                    async function pose(){
+                        if(!net) return
+                        const maskBackground = true;
+                        const personSegmentation = await net.estimatePersonSegmentation(video);
+                        const backgroundDarkeningMask = bodyPix.toMaskImageData(personSegmentation, maskBackground);
+                        const opacity = 0.9;
+                        const maskBlurAmount = 1;
+                        const flipHorizontal = false;
+                        const canvas = document.getElementById('draw');
+                        bodyPix.drawMask(canvas, video, backgroundDarkeningMask, opacity, maskBlurAmount, flipHorizontal);
+                    }
+                    function step() {
+                            pose()
+                            window.requestAnimationFrame(step);  
+                    }
+                    step()  
+                </script>
+
+    </body>
+</html>

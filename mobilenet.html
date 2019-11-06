@@ -1,0 +1,100 @@
+<html>
+    <head>
+        <title>mobilenet</title>
+        <meta charset="utf-8">
+        <script src="https://game.gtimg.cn/images/tgideas/tf/tfjs.1.0.1.js"> </script>
+        <script src="https://game.gtimg.cn/images/tgideas/tf/mobilenet.2.0.2.js"> </script>
+    </head>
+    <body>
+            <h1>图像分类</h1>
+            <div id="camera" style="display:none;width:640px;height:480px;position:relative;">
+                    <video id="video" width="640" height="480" autoplay></video>
+                    
+            </div>
+            <div id="upload" style="display:none">
+                    <input id="img_input" type="file" accept="image/*" onchange="uploadPic(event)"/>
+                    <label for="img_input"></label>
+                    <div id="preview"></div>
+            </div>
+            <div id="predict"></div>
+            <p>官方地址：<a href="https://github.com/tensorflow/tfjs-models/tree/master/mobilenet">https://github.com/tensorflow/tfjs-models/tree/master/mobilenet</a></p>
+            
+
+            <script>
+                    var CAMERA = document.getElementById('camera')
+                    var UPLOAD = document.getElementById('upload')
+                    var net = null;
+                    var video = null;
+                    var PREDICT = document.getElementById('predict');
+                    window.addEventListener("DOMContentLoaded", function() {
+                        video = document.getElementById('video');
+                        var mediaConfig =  {     
+                            'audio': false,
+                            'video': {
+                            facingMode: 'user',
+                            width: 640,
+                            height: 480,
+                            }
+                        };
+                        //加载模型
+                        loadModel()
+                        
+                        if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                            navigator.mediaDevices.getUserMedia(mediaConfig).then(function(stream) {
+                                CAMERA.style.display = 'block';
+                                setInterval(function(){
+                                    predict(video)
+                                },500)
+                                video.srcObject = stream;
+                                video.play();
+                                
+                            }).catch((e)=>{
+                                //显示上传框
+                                UPLOAD.style.display = 'block'
+                                console.log('用户已禁用摄像头');
+                            });
+                        }else{
+                            //显示上传框
+                            UPLOAD.style.display = 'block';
+                        }
+                    }, false);
+                    //图片
+                    async function uploadPic(e){
+                        let file = e.target.files[0];
+                        if (!file.type.match('image.*')) return;
+                        let reader = new FileReader();
+                        let PREVIEW = document.getElementById('preview');
+                        reader.readAsDataURL(file);
+                        reader.onload = function(e){
+                            PREVIEW.innerHTML = '';
+                            PREVIEW.innerHTML = `<img id="pic" src='${e.target.result}' width="320" >`;
+                            var image = new Image();
+                            image.src= e.target.result;
+                            image.onload = function () {
+                                //预测
+                                predict(image)
+                            }
+                        }
+                    }
+                    // 主逻辑
+                    async function loadModel(){
+                        PREDICT.innerHTML = '模型加载中..'
+                        net = await mobilenet.load({
+                            modelUrl:'https://www.gstaticcnapps.cn/tfhub-tfjs-modules/google/imagenet/mobilenet_v1_100_224/classification/1/model.json'
+                        });
+                        PREDICT.innerHTML = '模型加载完成'
+                    }
+                    async function predict(o){
+                        if(!net) await loadModel()
+                        const predict = await net.classify(o);
+                        let tpl = ``;
+                        predict.forEach(e=>{
+                            tpl +=`<p>${e.className}:相似度${e.probability}</p>`
+                        })
+                        document.getElementById('predict').innerHTML = tpl;
+                        
+                    }
+                </script>
+
+    </body>
+</html>

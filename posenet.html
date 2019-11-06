@@ -1,0 +1,97 @@
+<html>
+    <head>
+        <title>postnet</title>
+        <meta charset="utf-8">
+        <script src="https://game.gtimg.cn/images/tgideas/tf/tfjs.1.0.0.js"></script>
+        <script src="https://game.gtimg.cn/images/tgideas/tf/posenet.js"></script>
+    </head>
+    <body>
+            <h1>姿态检测</h1>
+            <div id="wrap" style="width:640px;height:480px;position:relative;">
+                    <video id="video" width="640" height="480" autoplay></video>
+                    <canvas id="draw" style="position: absolute;left:0;top:0;z-index:9;width:640px;height:480px"></canvas>
+                    <img src="https://ossweb-img.qq.com/images/game/brand/game-logo.png" id="logo" alt="" style="display:none">
+            </div>
+            <p>tensorflow官方地址：<a href="https://github.com/tensorflow/tfjs-models/tree/master/posenet">https://github.com/tensorflow/tfjs-models/tree/master/posenet</a></p>
+
+            <script>
+                    var net = null;
+                    var c = document.getElementById('draw');
+                    var ctx = c.getContext('2d');
+                    c.width = 640;
+                    c.height = 480;
+                    window.addEventListener("DOMContentLoaded", function() {
+                        var video = document.getElementById('video');
+                        var mediaConfig =  {     
+                            'audio': false,
+                            'video': {
+                            facingMode: 'user',
+                            width: 640,
+                            height: 480,
+                            }
+                        };
+                        console.log(navigator.mediaDevices)
+                        console.log(navigator.mediaDevices.getUserMedia)
+                        if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+
+                            navigator.mediaDevices.getUserMedia(mediaConfig).then(function(stream) {
+                                video.srcObject = stream;
+                                video.play();
+                                loadModel()
+                            }).catch(e=>{
+                                document.getElementsByTagName('h1')[0].innerHTML = '姿态检测示例 - 请使用有摄像头的PC体验 '
+                                document.getElementById('wrap').style.display = 'none'
+                            });
+                        }
+
+                    }, false);
+                    async function loadModel(){
+                        net = await posenet.load()
+                    }
+                    async function pose(){
+                        if(!net) return
+                        const pose = await net.estimateSinglePose(video, {
+                            flipHorizontal: false
+                        });
+                        if(pose.score > 0.3){
+                            ctx.clearRect(0,0,c.width,c.height);
+                        
+                            pose.keypoints.forEach(e => {
+                                draw(e)
+                            });
+                            const adjacentKeyPoints = posenet.getAdjacentKeyPoints(pose.keypoints, 0.3)
+                            adjacentKeyPoints.forEach((e)=>{
+                                drawSkeleton(e)
+                            })
+                        }
+                    }
+                    function draw(e) {
+                        ctx.beginPath()
+                        //设置绘制颜色
+                        ctx.fillStyle="aqua";
+                        //绘制成矩形
+                        ctx.fillRect(e.position.x-5,e.position.y-5,10,10);
+                        //设置图片跟随
+                        // var img = document.getElementById('logo')
+                        // if(e.part == 'nose'){
+                        //     ctx.drawImage(img,e.position.x-img.width/2,e.position.y-img.height/2,310,80)
+                        // }
+                    }
+                    function drawSkeleton(e) {
+                        ctx.beginPath()
+                        ctx.moveTo(e[0].position.x , e[0].position.y  )
+                        ctx.lineTo(e[1].position.x , e[1].position.y  )
+                        ctx.lineWidth = 2
+                        ctx.strokeStyle = `aqua`
+                        ctx.stroke()
+                    }
+
+                    function step() {
+                            pose()
+                            window.requestAnimationFrame(step);  
+                    }
+                    step()  
+                </script>
+
+    </body>
+</html>

@@ -1,0 +1,84 @@
+<html>
+    <head>
+        <title>object detection</title>
+        <meta charset="utf-8">
+        <script src="https://game.gtimg.cn/images/tgideas/tf/tfjs.1.0.0.js"> </script>
+        <script src="https://game.gtimg.cn/images/tgideas/tf/coco-ssd.js"> </script>
+    </head>
+    <body>
+            <h1>目标识别</h1>
+            <div id="camera" style="width:640px;height:480px;position:relative;">
+                    <video id="video" width="640" height="480" autoplay></video>
+                    <canvas id="draw" style="position: absolute;left:0;top:0;z-index:9;width:640px;height:480px"></canvas>
+            </div>
+            <p>官方地址：<a href="https://github.com/tensorflow/tfjs-models/tree/master/coco-ssd">https://github.com/tensorflow/tfjs-models/tree/master/coco-ssd</a></p>
+            <script>
+                    var net = null;
+                    var video = null;
+                    var c = document.getElementById('draw')
+                    var ctx = c.getContext('2d');
+                    c.width = '640'
+                    c.height = '480'
+                    window.addEventListener("DOMContentLoaded", function() {
+                        video = document.getElementById('video');
+                        var mediaConfig =  {     
+                            'audio': false,
+                            'video': {
+                            facingMode: 'user',
+                            width: 640,
+                            height: 480,
+                            }
+                        };
+                        if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                            navigator.mediaDevices.getUserMedia(mediaConfig).then(function(stream) {
+                                loadModel()
+                                setInterval(function(){
+                                    //预测
+                                    predict(video)
+                                },500)
+                                video.srcObject = stream;
+                                video.play();
+                                
+                            }).catch((e)=>{
+                                console.log('用户已禁用摄像头');
+                                document.getElementById('camera').style.display = 'none';
+                                document.getElementsByTagName('h1')[0].innerHTML  = '目标识别示例 - 请使用有摄像头的PC体验 ';
+                            });
+                        }
+                    }, false);
+
+                    // 主逻辑
+                    async function loadModel(){
+                        net = await cocoSsd.load();
+                    }
+                    async function predict(o){
+                        if(!net) return
+                        const predict = await net.detect(o);
+
+                        let tpl = ``;
+                        var clear = false;
+                        predict.forEach(e => {
+                            if(!clear){
+                                 clear = true;
+                                 ctx.clearRect(0,0,c.width,c.height);
+                            }
+                            draw(e)
+                        });
+                    }
+                    function draw(e) {
+                        console.log(e)
+                        var BOX = e.bbox;
+                        ctx.beginPath()
+                        //设置绘制属性
+                        ctx.strokeStyle="aqua";
+                        ctx.fillStyle = "aqua";
+                        ctx.font = "bold 20px arial";
+                        //绘制边框
+                        ctx.strokeRect(BOX[0],BOX[1],BOX[2],BOX[3]);
+                        ctx.fillText(e.class+' '+e.score,BOX[0]+10,BOX[1]+20);
+                    }
+                    
+                </script>
+
+    </body>
+</html>
