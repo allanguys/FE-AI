@@ -1,0 +1,110 @@
+<html>
+    <head>
+        <title>face-api</title>
+        <meta charset="utf-8">
+        <script src="script/face-api/face-api.min.js"> </script>
+    </head>
+    <body>
+        <input id="img_input" type="file" accept="image/*" onchange="uploadPic(event)"/>
+        <div id="upload" style="position: relative;">
+            <canvas id="draw" style="position: absolute;left:0;top:0;z-index:9;width:0px;height:0px"></canvas>
+            <label for="img_input"></label>
+            <div id="preview"></div>
+            <p id="status"></p>
+        </div>
+        <p>官方地址：<a href="https://github.com/justadudewhohacks/face-api.js">https://github.com/justadudewhohacks/face-api.js</a></p>
+    <script>
+        let net = null;
+        const c = document.getElementById('draw')
+        const ctx = c.getContext('2d');
+        const status = document.getElementById('status')
+        //加载模型
+        loadModel()
+        async function loadModel() {
+            status.innerText = '正在加载模型..'
+            //加载基础面部识别
+            net = await faceapi.nets.ssdMobilenetv1.loadFromUri('model/face-api/')
+            //加载表情识别模型
+            net = await faceapi.nets.faceExpressionNet.loadFromUri('model/face-api/')
+            //加载面部68点
+            net = await faceapi.nets.ageGenderNet.loadFromUri('model/face-api/')
+            status.innerText = '模型加载完成'
+        }
+        //图片
+        async function uploadPic(e){
+            let file = e.target.files[0];
+            if (!file.type.match('image.*')) return;
+            let reader = new FileReader();
+            let PREVIEW = document.getElementById('preview');
+            status.innerText = '正在预测..';
+            c.style.width = 0;
+            c.style.height = 0;
+            reader.readAsDataURL(file);
+            reader.onload = function(e){
+
+                PREVIEW.innerHTML = '';
+                PREVIEW.innerHTML = `<img id="pic" src='${e.target.result}' width="" >`;
+                var image = new Image();
+                image.src= e.target.result;
+                image.onload = function () {
+                    //预测
+                    predict(image)
+                }
+            }
+        }
+        //预测
+        async function predict(o) {
+            const detections = await faceapi.detectAllFaces(o).withFaceExpressions().withAgeAndGender();
+            status.innerText = '预测完成'
+            console.log(detections)
+            if(detections.length > 0){
+                const cSize = detections[0].detection
+                c.style.width =cSize.imageWidth;
+                c.style.height  = cSize.imageHeight;
+                c.width = cSize.imageWidth;
+                c.height = cSize.imageHeight;
+                detections.forEach((e) => {
+                    const p = e.detection.box;
+                    //画面部识别框和评分
+                    draw({point:[p.x,p.y,p.width,p.height],text:e.detection.classScore,box:true})
+                    //性别、年龄、情绪
+                    draw({point:[p.x,p.y+p.height+20],text:e.gender+','+e.age.toFixed(1)+','+sortObject(e.expressions)[0].key})
+                });
+            }else{
+                alert('没有发现人脸')
+            }
+
+        }
+        //画框
+        function draw(e) {
+            var BOX = e.point;
+            ctx.beginPath();
+            //保留3位小数
+            if(typeof e.text === 'number') e.text = e.text.toFixed(4)
+            //设置绘制属性
+            ctx.strokeStyle="aqua";
+            ctx.fillStyle = "aqua";
+            ctx.font = "bold 12px arial";
+            //绘制边框
+            if(e.box){
+                ctx.strokeRect(BOX[0],BOX[1],BOX[2],BOX[3]);
+            }
+            ctx.fillText(e.text,BOX[0],BOX[1]);
+        }
+        //排序
+        function sortObject(obj) {
+            let arr = [];
+            for(let prop in obj){
+                if(obj.hasOwnProperty(prop)){
+                    arr.push({
+                        'key':prop,
+                        'value':obj[prop]
+                    })
+                }
+            }
+            arr.sort(function (a,b) {return b.value - a.value})
+            return arr;
+        }
+    </script>
+    </body>
+</html>

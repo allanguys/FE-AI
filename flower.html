@@ -20,7 +20,7 @@
 
             <script>
                     let model = null;
-                    const label = ['daisy','dandelion','roses','sunflowers','tulips']
+                    const label = ['雏菊','蒲公英','玫瑰','向日葵','郁金香']
                     //加载模型
                     async function loadModel(){
                         predictText.innerHTML = '加载模型'
@@ -37,15 +37,13 @@
                         const image = tf.browser.fromPixels(pic);
                         const resized_image =
                             tf.image.resizeBilinear(image, [224,224]).toFloat();
-                        console.log(resized_image)
                         const offset = tf.scalar(255.0);
                         const normalized = tf.scalar(1.0).sub(resized_image.div(offset));
-                        console.log(normalized)
                         const batchedImage = normalized.expandDims(0);
-                        console.log(batchedImage.print())
                         const result = await model.predict(batchedImage).data();
                         //输出预测结果
                         var text = label.map((label, index) => ({ label, score: result[index] })).sort((a,b)=>b.score - a.score)
+                        console.log(label.map((label, index) => ({ label, score: result[index] })).sort((a,b)=>b.score - a.score))
                         text.forEach((e)=>{
                             tpl +=`<p>${e.label},评分${e.score}</p>`
 

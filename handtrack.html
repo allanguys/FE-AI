@@ -1,0 +1,103 @@
+<html>
+    <head>
+        <title>手部追踪</title>
+        <meta charset="utf-8">
+        <script src="script/handtrack/handtrack.min.js"> </script>
+    </head>
+    <body>
+        <input id="img_input" type="file" accept="image/*" onchange="uploadPic(event)"/>
+        <div id="upload" style="position: relative;">
+            <canvas id="draw" style="position: absolute;left:0;top:0;z-index:9;width:0px;height:0px"></canvas>
+            <label for="img_input"></label>
+            <div id="preview"></div>
+            <p id="status"></p>
+        </div>
+        <p>官方地址：<a href="https://github.com/victordibia/handtrack.js">https://github.com/victordibia/handtrack.js</a></p>
+    <script>
+        let net = null;
+        const c = document.getElementById('draw')
+        const ctx = c.getContext('2d');
+        const status = document.getElementById('status')
+        //加载模型
+        loadModel()
+        async function loadModel() {
+            status.innerText = '正在加载模型..'
+            //加载手部跟踪库
+            net = await handTrack.load({
+                flipHorizontal: false,
+                outputStride: 32,
+                imageScaleFactor: 0.7,
+                maxNumBoxes: 20,
+                iouThreshold: 0.5,
+                scoreThreshold: 0.6,
+                modelType:"ssdlitemobilenetv2",
+                basePath: 'model/handtrack/'
+            })
+            status.innerText = '模型加载完成'
+        }
+        //图片
+        async function uploadPic(e){
+            if(!net)  await loadModel();
+            let file = e.target.files[0];
+            if (!file.type.match('image.*')) return;
+            let reader = new FileReader();
+            let PREVIEW = document.getElementById('preview');
+            status.innerText = '正在预测..';
+            c.style.width = 0;
+            c.style.height = 0;
+            reader.readAsDataURL(file);
+            reader.onload = function(e){
+                PREVIEW.innerHTML = '';
+                PREVIEW.innerHTML = `<img id="pic" src='${e.target.result}' width="" >`;
+                var image = new Image();
+                image.src= e.target.result;
+                image.onload = function () {
+                    let PIC = document.getElementById('pic')
+                    PIC.style.width = image.width
+                    PIC.style.height = image.height
+                    //配置canvas尺寸
+                    c.style.width =image.width;
+                    c.style.height  = image.height;
+                    c.width = image.width;
+                    c.height = image.height;
+                    //预测
+                    predict(image)
+                }
+            }
+        }        //预测
+        async function predict(o) {
+            const predictions = await net.detect(o);
+            status.innerText = '预测完成'
+            console.log("Predictions: ", predictions);
+            if(predictions.length > 0){
+                // net.renderPredictions(predictions, c, ctx, o);
+                predictions.forEach((e) => {
+                    const p = e.bbox;
+
+                    draw({point:[p[0],p[1],p[2],p[3]],text:e.score})
+                });
+            }else{
+                alert('没有发现手掌')
+            }
+
+        }
+        //画框
+        function draw(e) {
+            var BOX = e.point;
+            ctx.beginPath();
+            //保留3位小数
+            if(typeof e.text === 'number') e.text = e.text.toFixed(4)
+
+            //设置绘制属性
+            ctx.strokeStyle="aqua";
+            ctx.fillStyle = "aqua";
+            ctx.font = "bold 12px arial";
+            //绘制中心点
+            ctx.fillRect(BOX[0] + (BOX[2] / 2), BOX[1] + (BOX[3] / 2), 5, 5)
+            //绘制边框
+            ctx.strokeRect(BOX[0],BOX[1],BOX[2],BOX[3]);
+            ctx.fillText(e.text,BOX[0],BOX[1]);
+        }
+    </script>
+    </body>
+</html>
