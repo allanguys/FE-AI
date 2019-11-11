@@ -79,9 +79,12 @@
                     // 主逻辑
                     async function loadModel(){
                         PREDICT.innerHTML = '模型加载中..'
-                        net = await mobilenet.load({
-                            modelUrl:'https://www.gstaticcnapps.cn/tfhub-tfjs-modules/google/imagenet/mobilenet_v1_100_224/classification/1/model.json'
-                        });
+                        net = await mobilenet.load(
+                            // {
+                            // version:2.0,
+                            // modelUrl:'https://www.gstaticcnapps.cn/tfhub-tfjs-modules/google/imagenet/mobilenet_v1_100_224/classification/1/model.json'
+                            // }
+                        );
                         PREDICT.innerHTML = '模型加载完成'
                     }
                     async function predict(o){
