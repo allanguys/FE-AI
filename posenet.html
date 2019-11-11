@@ -2,27 +2,41 @@
     <head>
         <title>postnet</title>
         <meta charset="utf-8">
-        <script src="https://game.gtimg.cn/images/tgideas/tf/tfjs.1.0.0.js"></script>
-        <script src="https://game.gtimg.cn/images/tgideas/tf/posenet.js"></script>
+        <script src="script/tfjs.1.3.1.js"></script>
+        <script src="script/posenet.js"></script>
     </head>
     <body>
             <h1>姿态检测</h1>
-            <div id="wrap" style="width:640px;height:480px;position:relative;">
-                    <video id="video" width="640" height="480" autoplay></video>
-                    <canvas id="draw" style="position: absolute;left:0;top:0;z-index:9;width:640px;height:480px"></canvas>
-                    <img src="https://ossweb-img.qq.com/images/game/brand/game-logo.png" id="logo" alt="" style="display:none">
+            <div id="demo" style="position: relative;min-height: 50px">
+                <!--视频-->
+                <div id="wrap" style="width:640px;height:480px;position:relative;display: none">
+                        <video id="video" width="640" height="480" autoplay></video>
+                        <img src="https://ossweb-img.qq.com/images/game/brand/game-logo.png" id="logo" alt="" style="display:none">
+                </div>
+                <!--图片-->
+                <div id="upload" style="display:none;position: absolute;z-index:99">
+                    <input id="img_input" type="file" accept="image/*" onchange="uploadPic(event)"/>
+                    <label for="img_input"></label>
+                </div>
+                <!--图片预览-->
+                <div id="preview"></div>
+                <!--canvas-->
+                <canvas id="draw" style="position: absolute;left:0;top:0;z-index:9;width:0px;height:0px;z-index:9;"></canvas>
             </div>
-            <p>tensorflow官方地址：<a href="https://github.com/tensorflow/tfjs-models/tree/master/posenet">https://github.com/tensorflow/tfjs-models/tree/master/posenet</a></p>
+            <!--状态-->
+            <p id="status"></p>
+            <p>官方地址：<a href="https://github.com/tensorflow/tfjs-models/tree/master/posenet">https://github.com/tensorflow/tfjs-models/tree/master/posenet</a></p>
 
             <script>
-                    var net = null;
-                    var c = document.getElementById('draw');
-                    var ctx = c.getContext('2d');
-                    c.width = 640;
-                    c.height = 480;
+                    let net = null;
+                    let c = document.getElementById('draw');
+                    let ctx = c.getContext('2d');
+                    let canvasVideoSize = {'width':640,'height':480}
+                    const status = document.getElementById('status')
+                    let video = document.getElementById('video');
                     window.addEventListener("DOMContentLoaded", function() {
-                        var video = document.getElementById('video');
-                        var mediaConfig =  {     
+                        let video = document.getElementById('video');
+                        let mediaConfig =  {     
                             'audio': false,
                             'video': {
                             facingMode: 'user',
@@ -30,55 +44,102 @@
                             height: 480,
                             }
                         };
-                        console.log(navigator.mediaDevices)
-                        console.log(navigator.mediaDevices.getUserMedia)
+                        //加载模型
+                        loadModel();
                         if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-
                             navigator.mediaDevices.getUserMedia(mediaConfig).then(function(stream) {
+                                document.getElementById('wrap').style.display = 'block';
                                 video.srcObject = stream;
                                 video.play();
-                                loadModel()
+                                video.onloadeddata = function(){
+                                        //用requestAnimationFrame执行pose函数
+                                        step(video)
+                                }
+                                
                             }).catch(e=>{
-                                document.getElementsByTagName('h1')[0].innerHTML = '姿态检测示例 - 请使用有摄像头的PC体验 '
-                                document.getElementById('wrap').style.display = 'none'
+                                //不支持摄像头显示图片逻辑
+                                document.getElementById('upload').style.display = 'block'
                             });
                         }
 
                     }, false);
-                    async function loadModel(){
-                        net = await posenet.load()
-                    }
-                    async function pose(){
-                        if(!net) return
-                        const pose = await net.estimateSinglePose(video, {
-                            flipHorizontal: false
-                        });
-                        if(pose.score > 0.3){
-                            ctx.clearRect(0,0,c.width,c.height);
-                        
-                            pose.keypoints.forEach(e => {
-                                draw(e)
-                            });
-                            const adjacentKeyPoints = posenet.getAdjacentKeyPoints(pose.keypoints, 0.3)
-                            adjacentKeyPoints.forEach((e)=>{
-                                drawSkeleton(e)
-                            })
+
+                    //图片
+                    function uploadPic(e){
+                        let file = e.target.files[0];
+                        if (!file.type.match('image.*')) return;
+                        let reader = new FileReader();
+                        let PREVIEW = document.getElementById('preview');
+                        reader.readAsDataURL(file);
+                        status.innerText = '正在预测..'
+                        reader.onload = function(e){
+                            PREVIEW.innerHTML = '';
+                            PREVIEW.innerHTML = `<img id="pic" src='${e.target.result}'  >`;
+                            let image = new Image();
+                            image.src= e.target.result;
+                            image.onload = function () {
+                                //在image加载后重设canvas大小对象
+                                canvasVideoSize = {'width':image.width,'height':image.height}
+                                //预测
+                                pose(image)
+                            }
                         }
                     }
+                    //加载模型
+                    async function loadModel(){
+                        status.innerText = '正在加载模型...'
+                        net = await posenet.load()
+                        status.innerText = '模型加载完成'
+                    }
+                    //预测主函数
+                    async function pose(o){
+                        if(!net) return;
+                        const pose = await net.estimateMultiplePoses(o, {
+                            flipHorizontal: false
+                        });
+                        status.innerText = ''
+                        console.log(pose)
+                        //结果大于0
+                        if(pose.length > 0){
+                            ctx.clearRect(0,0,0,0);
+                            //初始化canvas width height
+                            c.width = canvasVideoSize.width;
+                            c.height = canvasVideoSize.height;
+                            c.style.height = canvasVideoSize.height;
+                            c.style.width = canvasVideoSize.width;
+                            pose.forEach(p=>{
+                                if(p.score > 0.3){
+
+                                    p.keypoints.forEach(e => {
+                                        draw(e)
+                                    });
+                                    const adjacentKeyPoints = posenet.getAdjacentKeyPoints(p.keypoints, 0.3)
+                                    adjacentKeyPoints.forEach((e)=>{
+                                        drawSkeleton(e)
+                                    })
+                                }
+                            })
+
+                        }else{
+                            alert('没有发现人体')
+                        }
+
+                    }
+                    //绘制坐标点
                     function draw(e) {
                         ctx.beginPath()
                         //设置绘制颜色
                         ctx.fillStyle="aqua";
                         //绘制成矩形
-                        ctx.fillRect(e.position.x-5,e.position.y-5,10,10);
-                        //设置图片跟随
-                        // var img = document.getElementById('logo')
+                        ctx.fillRect(e.position.x-2,e.position.y-2,4,4);
+                        //挂件
+                        // let img = document.getElementById('logo')
                         // if(e.part == 'nose'){
                         //     ctx.drawImage(img,e.position.x-img.width/2,e.position.y-img.height/2,310,80)
                         // }
                     }
+                    //绘制骨架
                     function drawSkeleton(e) {
-                        ctx.beginPath()
                         ctx.moveTo(e[0].position.x , e[0].position.y  )
                         ctx.lineTo(e[1].position.x , e[1].position.y  )
                         ctx.lineWidth = 2
@@ -87,10 +148,10 @@
                     }
 
                     function step() {
-                            pose()
+                            pose(video)
                             window.requestAnimationFrame(step);  
                     }
-                    step()  
+
                 </script>
 
     </body>

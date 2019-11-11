@@ -2,26 +2,40 @@
     <head>
         <title>object detection</title>
         <meta charset="utf-8">
-        <script src="https://game.gtimg.cn/images/tgideas/tf/tfjs.1.0.0.js"> </script>
-        <script src="https://game.gtimg.cn/images/tgideas/tf/coco-ssd.js"> </script>
+        <script src="script/tfjs.1.0.0.js"> </script>
+        <script src="script/coco-ssd.js"> </script>
     </head>
     <body>
             <h1>目标识别</h1>
-            <div id="camera" style="width:640px;height:480px;position:relative;">
+            <div id="demo" style="position: relative;min-height: 50px">
+                <!--视频-->
+                <div id="wrap" style="width:640px;height:480px;position:relative;display: none">
                     <video id="video" width="640" height="480" autoplay></video>
-                    <canvas id="draw" style="position: absolute;left:0;top:0;z-index:9;width:640px;height:480px"></canvas>
+                    <img src="https://ossweb-img.qq.com/images/game/brand/game-logo.png" id="logo" alt="" style="display:none">
+                </div>
+                <!--图片-->
+                <div id="upload" style="display:none;position: absolute;z-index:99">
+                    <input id="img_input" type="file" accept="image/*" onchange="uploadPic(event)" />
+                    <label for="img_input"></label>
+                </div>
+                <!--图片预览-->
+                <div id="preview"></div>
+                <!--canvas-->
+                <canvas id="draw" style="position: absolute;left:0;top:0;z-index:9;width:0px;height:0px;z-index:9;"></canvas>
             </div>
+            <!--状态-->
+            <p id="status"></p>
             <p>官方地址：<a href="https://github.com/tensorflow/tfjs-models/tree/master/coco-ssd">https://github.com/tensorflow/tfjs-models/tree/master/coco-ssd</a></p>
             <script>
-                    var net = null;
-                    var video = null;
-                    var c = document.getElementById('draw')
-                    var ctx = c.getContext('2d');
-                    c.width = '640'
-                    c.height = '480'
+                    let net = null;
+                    let c = document.getElementById('draw');
+                    let ctx = c.getContext('2d');
+                    let canvasVideoSize = {'width':640,'height':480}
+                    const status = document.getElementById('status')
+                    let video = document.getElementById('video');
                     window.addEventListener("DOMContentLoaded", function() {
                         video = document.getElementById('video');
-                        var mediaConfig =  {     
+                        let mediaConfig =  {     
                             'audio': false,
                             'video': {
                             facingMode: 'user',
@@ -29,9 +43,11 @@
                             height: 480,
                             }
                         };
+                        //加载模型
+                        loadModel()
                         if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                             navigator.mediaDevices.getUserMedia(mediaConfig).then(function(stream) {
-                                loadModel()
+                                document.getElementById('wrap').style.display = 'block'
                                 setInterval(function(){
                                     //预测
                                     predict(video)
@@ -40,33 +56,56 @@
                                 video.play();
                                 
                             }).catch((e)=>{
-                                console.log('用户已禁用摄像头');
-                                document.getElementById('camera').style.display = 'none';
-                                document.getElementsByTagName('h1')[0].innerHTML  = '目标识别示例 - 请使用有摄像头的PC体验 ';
+                                //不支持摄像头显示图片逻辑
+                                document.getElementById('upload').style.display = 'block'
                             });
                         }
                     }, false);
-
-                    // 主逻辑
-                    async function loadModel(){
-                        net = await cocoSsd.load();
+                    //图片
+                    function uploadPic(e){
+                        let file = e.target.files[0];
+                        if (!file.type.match('image.*')) return;
+                        let reader = new FileReader();
+                        let PREVIEW = document.getElementById('preview');
+                        reader.readAsDataURL(file);
+                        status.innerText = '正在预测..'
+                        reader.onload = function(e){
+                            PREVIEW.innerHTML = '';
+                            PREVIEW.innerHTML = `<img id="pic" src='${e.target.result}'  >`;
+                            let image = new Image();
+                            image.src= e.target.result;
+                            image.onload = function () {
+                                //在image加载后重设canvas大小对象
+                                canvasVideoSize = {'width':image.width,'height':image.height}
+                                //预测
+                                predict(image)
+                            }
+                        }
                     }
+                    //加载模型
+                    async function loadModel(){
+                        status.innerText = '正在加载模型...'
+                        net = await cocoSsd.load();
+                        status.innerText = '模型加载完成'
+                    }
+                    //预测主函数
                     async function predict(o){
                         if(!net) return
                         const predict = await net.detect(o);
-
-                        let tpl = ``;
-                        var clear = false;
+                        console.log(predict)
+                        status.innerText = ''
+                        ctx.clearRect(0,0,0,0);
+                        //初始化canvas width height
+                        c.width = canvasVideoSize.width;
+                        c.height = canvasVideoSize.height;
+                        c.style.height = canvasVideoSize.height;
+                        c.style.width = canvasVideoSize.width;
                         predict.forEach(e => {
-                            if(!clear){
-                                 clear = true;
-                                 ctx.clearRect(0,0,c.width,c.height);
-                            }
                             draw(e)
                         });
                     }
                     function draw(e) {
-                        var BOX = e.bbox;
+                        let BOX = e.bbox;
                         ctx.beginPath()
                         //设置绘制属性
                         ctx.strokeStyle="aqua";

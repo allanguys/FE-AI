@@ -1,25 +1,65 @@
 <html>
     <head>
-        <title>face-api</title>
+        <title>face-api.js</title>
         <meta charset="utf-8">
         <script src="script/face-api/face-api.min.js"> </script>
     </head>
     <body>
-        <input id="img_input" type="file" accept="image/*" onchange="uploadPic(event)"/>
-        <div id="upload" style="position: relative;">
-            <canvas id="draw" style="position: absolute;left:0;top:0;z-index:9;width:0px;height:0px"></canvas>
-            <label for="img_input"></label>
+        <h1>face-api.js</h1>
+        <div id="demo" style="position: relative;min-height: 50px">
+            <!--视频-->
+            <div id="wrap" style="width:640px;height:480px;position:relative;display: none">
+                <video id="video" width="640" height="480" autoplay></video>
+                <img src="https://ossweb-img.qq.com/images/game/brand/game-logo.png" id="logo" alt="" style="display:none">
+            </div>
+            <!--图片-->
+            <div id="upload" style="display:none;position: absolute;z-index:99">
+                <input id="img_input" type="file" accept="image/*" onchange="uploadPic(event)" />
+                <label for="img_input"></label>
+            </div>
+            <!--图片预览-->
             <div id="preview"></div>
-            <p id="status"></p>
+            <!--canvas-->
+            <canvas id="draw" style="position: absolute;left:0;top:0;z-index:9;width:0px;height:0px;z-index:9;"></canvas>
         </div>
+        <!--状态-->
+        <p id="status"></p>
         <p>官方地址：<a href="https://github.com/justadudewhohacks/face-api.js">https://github.com/justadudewhohacks/face-api.js</a></p>
     <script>
         let net = null;
-        const c = document.getElementById('draw')
-        const ctx = c.getContext('2d');
+        let c = document.getElementById('draw');
+        let ctx = c.getContext('2d');
+        let canvasVideoSize = {'width':640,'height':480}
         const status = document.getElementById('status')
-        //加载模型
-        loadModel()
+        let video = document.getElementById('video');
+        window.addEventListener("DOMContentLoaded", function() {
+            video = document.getElementById('video');
+            let mediaConfig =  {     
+                'audio': false,
+                'video': {
+                facingMode: 'user',
+                width: 640,
+                height: 480,
+                }
+            };
+            //加载模型
+            loadModel()
+            if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia(mediaConfig).then(function(stream) {
+                    document.getElementById('wrap').style.display = 'block'
+                    setInterval(function(){
+                        //预测
+                        predict(video)
+                    },500)
+                    video.srcObject = stream;
+                    video.play();
+                    
+                }).catch((e)=>{
+                    //不支持摄像头显示图片逻辑
+                    document.getElementById('upload').style.display = 'block'
+                });
+            }
+        }, false);
         async function loadModel() {
             status.innerText = '正在加载模型..'
             //加载基础面部识别
@@ -44,7 +84,7 @@
 
                 PREVIEW.innerHTML = '';
                 PREVIEW.innerHTML = `<img id="pic" src='${e.target.result}' width="" >`;
-                var image = new Image();
+                let image = new Image();
                 image.src= e.target.result;
                 image.onload = function () {
                     //预测
@@ -71,13 +111,13 @@
                     draw({point:[p.x,p.y+p.height+20],text:e.gender+','+e.age.toFixed(1)+','+sortObject(e.expressions)[0].key})
                 });
             }else{
-                alert('没有发现人脸')
+                console.log('没有发现人脸')
             }
 
         }
         //画框
         function draw(e) {
-            var BOX = e.point;
+            let BOX = e.point;
             ctx.beginPath();
             //保留3位小数
             if(typeof e.text === 'number') e.text = e.text.toFixed(4)

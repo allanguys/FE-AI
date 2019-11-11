@@ -5,6 +5,7 @@
         <script src="script/handtrack/handtrack.min.js"> </script>
     </head>
     <body>
+        <h1>手部追踪</h1>
         <input id="img_input" type="file" accept="image/*" onchange="uploadPic(event)"/>
         <div id="upload" style="position: relative;">
             <canvas id="draw" style="position: absolute;left:0;top:0;z-index:9;width:0px;height:0px"></canvas>
@@ -49,7 +50,7 @@
             reader.onload = function(e){
                 PREVIEW.innerHTML = '';
                 PREVIEW.innerHTML = `<img id="pic" src='${e.target.result}' width="" >`;
-                var image = new Image();
+                let image = new Image();
                 image.src= e.target.result;
                 image.onload = function () {
                     let PIC = document.getElementById('pic')
@@ -83,7 +84,7 @@
         }
         //画框
         function draw(e) {
-            var BOX = e.point;
+            let BOX = e.point;
             ctx.beginPath();
             //保留3位小数
             if(typeof e.text === 'number') e.text = e.text.toFixed(4)

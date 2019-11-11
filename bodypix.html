@@ -2,28 +2,40 @@
     <head>
         <title>bodypix</title>
         <meta charset="utf-8">
-        <script src="https://game.gtimg.cn/images/tgideas/tf/tfjs.1.0.0.js"></script>
-        <script src="https://game.gtimg.cn/images/tgideas/tf/body-pix.1.0.0.js"></script>
+        <script src="script/tfjs.1.0.0.js"></script>
+        <script src="script/body-pix.1.0.0.js"></script>
     </head>
     <body>
             <h1>人物分隔</h1>
-            <div id="wrap" style="width:640px;height:480px;position:relative;">
+            <div id="demo" style="position: relative;min-height: 50px">
+                <!--视频-->
+                <div id="wrap" style="width:640px;height:480px;position:relative;display: none">
                     <video id="video" width="640" height="480" autoplay></video>
-                    <canvas id="draw" style="position: absolute;left:0;top:0;z-index:9;width:640px;height:480px"></canvas>
-                    <img src="https://ossweb-img.qq.com/images/game/brand/game-logo.png" id="logo" alt="" style="display:none">
+                </div>
+                <!--图片-->
+                <div id="upload" style="display:none;position: absolute;z-index:99">
+                    <input id="img_input" type="file" accept="image/*" onchange="uploadPic(event)" />
+                    <label for="img_input"></label>
+                </div>
+                <!--图片预览-->
+                <div id="preview"></div>
+                <!--canvas-->
+                <canvas id="draw" style="position: absolute;left:0;top:0;z-index:9;width:0px;height:0px;z-index:9;"></canvas>
             </div>
+            <!--状态-->
+            <p id="status"></p>
             <p>官方地址：<a href="https://github.com/tensorflow/tfjs-models/tree/master/body-pix">https://github.com/tensorflow/tfjs-models/tree/master/body-pix</a></p>
 
             <script>
-                    var net = null;
-                    var c = document.getElementById('draw');
-                    var ctx = c.getContext('2d');
-                     var video = document.getElementById('video');
-                     c.width = 640;
-                     c.height = 480;
+                    let net = null;
+                    let c = document.getElementById('draw');
+                    let ctx = c.getContext('2d');
+                    let canvasVideoSize = {'width':640,'height':480}
+                    const status = document.getElementById('status')
+                    let video = document.getElementById('video');
                     window.addEventListener("DOMContentLoaded", function() {
                         
-                        var mediaConfig =  {     
+                        let mediaConfig =  {     
                             'audio': false,
                             'video': {
                             facingMode: 'user',
@@ -31,37 +43,99 @@
                             height: 480,
                             }
                         };
+                        //加载模型
+                        loadModel()
                         if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                             navigator.mediaDevices.getUserMedia(mediaConfig).then(function(stream) {
+                                document.getElementById('wrap').style.display = 'block';
+                                //初始化canvas width height
+                                c.width = canvasVideoSize.width;
+                                c.height = canvasVideoSize.height;
+                                c.style.height = canvasVideoSize.height;
+                                c.style.width = canvasVideoSize.width;
                                 video.srcObject = stream;
                                 video.play();
-                                console.log(video)
-                                loadModel()
+                                video.onloadeddata = function(){
+                                        //用requestAnimationFrame执行pose函数
+                                        step(video)
+                                }
+                                
                             }).catch(e=>{
-                                document.getElementsByTagName('h1')[0].innerHTML = '人物分隔示例 - 请使用有摄像头的PC体验 '
-                                document.getElementById('wrap').style.display = 'none'
+                                //不支持摄像头显示图片逻辑
+                                document.getElementById('upload').style.display = 'block'
                             });
                         }
                     }, false);
-                    async function loadModel(){
-                        net = await bodyPix.load();
+                    //图片
+                    function uploadPic(e){
+                        let file = e.target.files[0];
+                        if (!file.type.match('image.*')) return;
+                        let reader = new FileReader();
+                        let PREVIEW = document.getElementById('preview');
+                        reader.readAsDataURL(file);
+                        status.innerText = '正在预测..'
+                        reader.onload = function(e){
+                            PREVIEW.innerHTML = '';
+                            PREVIEW.innerHTML = `<img id="pic" src='${e.target.result}'  >`;
+                            let image = new Image();
+                            image.src= e.target.result;
+                            image.onload = function () {
+                                //初始化canvas width height
+                                c.width = canvasVideoSize.width;
+                                c.height = canvasVideoSize.height;
+                                c.style.height = canvasVideoSize.height;
+                                c.style.width = canvasVideoSize.width;
+                                //在image加载后重设canvas大小对象
+                                canvasVideoSize = {'width':image.width,'height':image.height}
+                                //预测
+                                predict(image)
+                            }
+                        }
                     }
-                    async function pose(){
-                        if(!net) return
+                    //加载模型
+                    async function loadModel(){
+                        status.innerText = '正在加载模型...'
+                        net = await bodyPix.load();
+                        status.innerText = '模型加载完成'
+                    }
+                    async function predict(o){
+                        if(!net) return;
+                        status.innerText = '';
+                        //背景涂色***************/
                         const maskBackground = true;
-                        const personSegmentation = await net.estimatePersonSegmentation(video);
+                        const personSegmentation = await net.estimatePersonSegmentation(o);
                         const backgroundDarkeningMask = bodyPix.toMaskImageData(personSegmentation, maskBackground);
-                        const opacity = 0.9;
+                        const opacity = 0.6;
                         const maskBlurAmount = 1;
                         const flipHorizontal = false;
-                        const canvas = document.getElementById('draw');
-                        bodyPix.drawMask(canvas, video, backgroundDarkeningMask, opacity, maskBlurAmount, flipHorizontal);
+                        bodyPix.drawMask(c, o, backgroundDarkeningMask, opacity, maskBlurAmount, flipHorizontal);
+                        //背景虚化***************/
+                        // const personSegmentation = await net.estimatePersonSegmentation(o);
+                        // const backgroundBlurAmount = 3;
+                        // const edgeBlurAmount = 3;
+                        // const flipHorizontal = false;
+                        // bodyPix.drawBokehEffect(c, o, personSegmentation, backgroundBlurAmount, edgeBlurAmount, flipHorizontal);
+                        //人物涂色***************/
+                        // const partSegmentation = await net.estimatePartSegmentation(o);
+                        // const rainbow = [
+                        //     [110, 64, 170], [143, 61, 178], [178, 60, 178], [210, 62, 167],
+                        //     [238, 67, 149], [255, 78, 125], [255, 94, 99],  [255, 115, 75],
+                        //     [255, 140, 56], [239, 167, 47], [217, 194, 49], [194, 219, 64],
+                        //     [175, 240, 91], [135, 245, 87], [96, 247, 96],  [64, 243, 115],
+                        //     [40, 234, 141], [28, 219, 169], [26, 199, 194], [33, 176, 213],
+                        //     [47, 150, 224], [65, 125, 224], [84, 101, 214], [99, 81, 195]
+                        // ];
+                        // const coloredPartImage = bodyPix.toColoredPartImageData(partSegmentation, rainbow);
+                        // const opacity = 0.7;
+                        // const flipHorizontal = false;
+                        // const maskBlurAmount = 0;
+                        // const pixelCellWidth = 1.0;
+                        // bodyPix.drawPixelatedMask(c, o, coloredPartImage, opacity, maskBlurAmount,flipHorizontal, pixelCellWidth);
                     }
                     function step() {
-                            pose()
+                            predict(video)
                             window.requestAnimationFrame(step);  
                     }
-                    step()  
                 </script>
 
     </body>

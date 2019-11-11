@@ -42,7 +42,7 @@
                         const batchedImage = normalized.expandDims(0);
                         const result = await model.predict(batchedImage).data();
                         //输出预测结果
-                        var text = label.map((label, index) => ({ label, score: result[index] })).sort((a,b)=>b.score - a.score)
+                        let text = label.map((label, index) => ({ label, score: result[index] })).sort((a,b)=>b.score - a.score)
                         console.log(label.map((label, index) => ({ label, score: result[index] })).sort((a,b)=>b.score - a.score))
                         text.forEach((e)=>{
                             tpl +=`<p>${e.label},评分${e.score}</p>`
@@ -60,7 +60,7 @@
                         reader.onload = function(e){
                             PREVIEW.innerHTML = '';
                             PREVIEW.innerHTML = `<img id="pic" src='${e.target.result}' width="320" >`;
-                            var image = new Image();
+                            let image = new Image();
                             image.src= e.target.result;
                             image.onload = function () {
                                 //预测

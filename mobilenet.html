@@ -21,14 +21,14 @@
             
 
             <script>
-                    var CAMERA = document.getElementById('camera')
-                    var UPLOAD = document.getElementById('upload')
-                    var net = null;
-                    var video = null;
-                    var PREDICT = document.getElementById('predict');
+                    let CAMERA = document.getElementById('camera')
+                    let UPLOAD = document.getElementById('upload')
+                    let net = null;
+                    let video = null;
+                    let PREDICT = document.getElementById('predict');
                     window.addEventListener("DOMContentLoaded", function() {
                         video = document.getElementById('video');
-                        var mediaConfig =  {     
+                        let mediaConfig =  {     
                             'audio': false,
                             'video': {
                             facingMode: 'user',
@@ -68,7 +68,7 @@
                         reader.onload = function(e){
                             PREVIEW.innerHTML = '';
                             PREVIEW.innerHTML = `<img id="pic" src='${e.target.result}' width="320" >`;
-                            var image = new Image();
+                            let image = new Image();
                             image.src= e.target.result;
                             image.onload = function () {
                                 //预测
@@ -88,7 +88,7 @@
                         PREDICT.innerHTML = '模型加载完成'
                     }
                     async function predict(o){
-                        if(!net) await loadModel()
+                        if(!net) return
                         const predict = await net.classify(o);
                         let tpl = ``;
                         predict.forEach(e=>{
