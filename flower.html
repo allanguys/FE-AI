@@ -2,7 +2,7 @@
     <head>
         <title>看图识花</title>
         <meta charset="utf-8">
-        <script src="https://game.gtimg.cn/images/codm/tfjs/tfjs.js"> </script>
+        <script src="script/tfjs.1.3.1.js"> </script>
     </head>
     <body>
             <h1>看图识花</h1>
@@ -16,20 +16,21 @@
                 </div>
 
             </div>
-            
 
             <script>
                     let model = null;
-                    const label = ['雏菊','蒲公英','玫瑰','向日葵','郁金香']
+                    let predictText = document.getElementById('predictText')
+                    const label = ['雏菊','蒲公英','玫瑰','向日葵','郁金香'];
+                    loadModel()
                     //加载模型
                     async function loadModel(){
                         predictText.innerHTML = '加载模型'
-                        const MODEL_URL = 'http://allan5.com/FE-AI/model/flower/model.json';
-                        model = await tf.loadGraphModel(MODEL_URL);
+                        model = await tf.loadGraphModel('model/flower/model.json');
+                        predictText.innerHTML = '模型加载完成'
                     }
                     //预测
                     async function predict(pic) {
-                        await loadModel()
+                        if(!model) return
                         let predictText = document.getElementById('predictText')
                         predictText.innerHTML = '预测中'
                         let tpl = ''

@@ -2,7 +2,7 @@
     <head>
         <title>object detection</title>
         <meta charset="utf-8">
-        <script src="script/tfjs.1.0.0.js"> </script>
+        <script src="script/tfjs.1.3.1.js"> </script>
         <script src="script/coco-ssd.js"> </script>
     </head>
     <body>
@@ -85,7 +85,9 @@
                     //加载模型
                     async function loadModel(){
                         status.innerText = '正在加载模型...'
-                        net = await cocoSsd.load();
+                        net = await cocoSsd.load({
+                            modelUrl:'model/object_detection/model.json'
+                        });
                         status.innerText = '模型加载完成'
                     }
                     //预测主函数

@@ -88,7 +88,9 @@
                     //加载模型
                     async function loadModel(){
                         status.innerText = '正在加载模型...'
-                        net = await posenet.load()
+                        net = await posenet.load({
+                            modelUrl:'model/posenet/model-stride16.json'
+                        })
                         status.innerText = '模型加载完成'
                     }
                     //预测主函数
