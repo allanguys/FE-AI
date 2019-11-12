@@ -17,8 +17,6 @@
                     <input id="img_input" type="file" accept="image/*" onchange="uploadPic(event)" />
                     <label for="img_input"></label>
                 </div>
-                <!--图片预览-->
-                <div id="preview"></div>
                 <!--canvas-->
                 <canvas id="draw" style="position: absolute;left:0;top:0;z-index:9;width:0px;height:0px;z-index:9;"></canvas>
             </div>
@@ -71,12 +69,9 @@
                         let file = e.target.files[0];
                         if (!file.type.match('image.*')) return;
                         let reader = new FileReader();
-                        let PREVIEW = document.getElementById('preview');
                         reader.readAsDataURL(file);
                         status.innerText = '正在预测..'
                         reader.onload = function(e){
-                            PREVIEW.innerHTML = '';
-                            PREVIEW.innerHTML = `<img id="pic" src='${e.target.result}'  >`;
                             let image = new Image();
                             image.src= e.target.result;
                             image.onload = function () {
