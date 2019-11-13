@@ -94,9 +94,9 @@
     //加载模型
     async function loadModel(){
         status.innerText = '正在加载模型...'
-        net = await bodyPix.load({'modelUrl':'/model/bodypix2/model-stride16.json'});
+        net = await bodyPix.load();
         status.innerText = '模型加载完成'
-    } 
+    }
     async function predict(o){
         if(!net) return;
         status.innerText = '';
