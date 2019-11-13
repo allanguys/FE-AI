@@ -1,0 +1,152 @@
+<html>
+<head>
+    <title>bodypix</title>
+    <meta charset="utf-8">
+    <script src="script/tfjs.1.3.1.js"></script>
+    <script src="script/body-pix.2.0.0.js"></script>
+</head>
+<body>
+<h1>人物分割2.0</h1>
+<div id="demo" style="position: relative;min-height: 50px">
+    <!--视频-->
+    <div id="wrap" style="width:640px;height:480px;position:relative;display: none">
+        <video id="video" width="640" height="480" autoplay></video>
+    </div>
+    <!--图片-->
+    <div id="upload" style="display:none;position: absolute;z-index:99">
+        <input id="img_input" type="file" accept="image/*" onchange="uploadPic(event)" />
+        <label for="img_input"></label>
+    </div>
+    <!--canvas-->
+    <canvas id="draw" style="position: absolute;left:0;top:0;z-index:9;width:0px;height:0px;z-index:9;"></canvas>
+</div>
+<!--状态-->
+<p id="status"></p>
+<p>官方地址：<a href="https://github.com/tensorflow/tfjs-models/tree/master/body-pix">https://github.com/tensorflow/tfjs-models/tree/master/body-pix</a></p>
+<p>前端智能DEMO合集：<a href="http://allan5.com/FE-AI/">http://allan5.com/FE-AI/</a></p>
+
+<script>
+    let net = null;
+    let c = document.getElementById('draw');
+    let ctx = c.getContext('2d');
+    let canvasVideoSize = {'width':640,'height':480}
+    const status = document.getElementById('status')
+    let video = document.getElementById('video');
+    window.addEventListener("DOMContentLoaded", function() {
+
+        let mediaConfig =  {
+            'audio': false,
+            'video': {
+                facingMode: 'user',
+                width: 640,
+                height: 480,
+            }
+        };
+        //加载模型
+        loadModel()
+        if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia(mediaConfig).then(function(stream) {
+                document.getElementById('wrap').style.display = 'block';
+                //初始化canvas width height
+                c.width = canvasVideoSize.width;
+                c.height = canvasVideoSize.height;
+                c.style.height = canvasVideoSize.height;
+                c.style.width = canvasVideoSize.width;
+                video.srcObject = stream;
+                video.play();
+                video.onloadeddata = function(){
+                    //用requestAnimationFrame执行预测函数
+                    step(video)
+                }
+
+            }).catch(e=>{
+                c.style.position = 'static'
+                //不支持摄像头显示图片逻辑
+                document.getElementById('upload').style.display = 'block'
+        });
+        }
+    }, false);
+    //图片
+    function uploadPic(e){
+        let file = e.target.files[0];
+        if (!file.type.match('image.*')) return;
+        let reader = new FileReader();
+        reader.readAsDataURL(file);
+        status.innerText = '正在预测..'
+        reader.onload = function(e){
+            let image = new Image();
+            image.src= e.target.result;
+            image.onload = function () {
+                //在image加载后重设canvas大小对象
+                canvasVideoSize = {'width':image.width,'height':image.height}
+                //初始化canvas width height
+                c.width = canvasVideoSize.width;
+                c.height = canvasVideoSize.height;
+                c.style.height = canvasVideoSize.height;
+                c.style.width = canvasVideoSize.width;
+                image.style.width = canvasVideoSize.width
+                image.style.height = canvasVideoSize.height
+                //预测
+                predict(image)
+            }
+        }
+    }
+    //加载模型
+    async function loadModel(){
+        status.innerText = '正在加载模型...'
+        net = await bodyPix.load({'modelUrl':'/model/bodypix2/model-stride16.json'});
+        status.innerText = '模型加载完成'
+    }
+    async function predict(o){
+        if(!net) return;
+        status.innerText = '';
+        //part涂色***************/
+        const partSegmentation  = await net.segmentMultiPersonParts(o);
+        const rainbow = [
+            [110, 64, 170], [143, 61, 178], [178, 60, 178], [210, 62, 167],
+            [238, 67, 149], [255, 78, 125], [255, 94, 99],  [255, 115, 75],
+            [255, 140, 56], [239, 167, 47], [217, 194, 49], [194, 219, 64],
+            [175, 240, 91], [135, 245, 87], [96, 247, 96],  [64, 243, 115],
+            [40, 234, 141], [28, 219, 169], [26, 199, 194], [33, 176, 213],
+            [47, 150, 224], [65, 125, 224], [84, 101, 214], [99, 81, 195]
+        ];
+        const coloredPartImage = bodyPix.toColoredPartMask(partSegmentation, rainbow);
+        const opacity = 0.7;
+        const flipHorizontal = false;
+        const maskBlurAmount = 0;
+        bodyPix.drawMask(
+            c, o, coloredPartImage, opacity, maskBlurAmount,
+            flipHorizontal);
+        //背景虚化***************/
+        // const personSegmentation = await net.segmentPerson(o);
+        // const backgroundBlurAmount = 3;
+        // const edgeBlurAmount = 3;
+        // const flipHorizontal = false;
+        // bodyPix.drawBokehEffect(c, o, personSegmentation, backgroundBlurAmount, edgeBlurAmount, flipHorizontal);
+        //人物像素化***************/
+        // const partSegmentation = await net.segmentPersonParts(o);
+        // const rainbow = [
+        //     [110, 64, 170], [143, 61, 178], [178, 60, 178], [210, 62, 167],
+        //     [238, 67, 149], [255, 78, 125], [255, 94, 99],  [255, 115, 75],
+        //     [255, 140, 56], [239, 167, 47], [217, 194, 49], [194, 219, 64],
+        //     [175, 240, 91], [135, 245, 87], [96, 247, 96],  [64, 243, 115],
+        //     [40, 234, 141], [28, 219, 169], [26, 199, 194], [33, 176, 213],
+        //     [47, 150, 224], [65, 125, 224], [84, 101, 214], [99, 81, 195]
+        // ];
+        // const coloredPartImage = bodyPix.toColoredPartMask(partSegmentation, rainbow);
+        // const opacity = 0.7;
+        // const flipHorizontal = false;
+        // const maskBlurAmount = 0;
+        // const pixelCellWidth = 3.0;
+        // bodyPix.drawPixelatedMask(
+        //     c, o, coloredPartImage, opacity, maskBlurAmount,
+        //     flipHorizontal, pixelCellWidth);
+    }
+    function step() {
+        predict(video)
+        window.requestAnimationFrame(step);
+    }
+</script>
+
+</body>
+</html>
