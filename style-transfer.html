@@ -75,9 +75,9 @@
                     async function loadModel(){
                         status.innerText = '正在加载模型...'
                         //抽取风格图特征抽取
-                        net = await tf.loadGraphModel('https://reiinakano.com/arbitrary-image-stylization-tfjs/saved_model_style_js/model.json')
+                        net = await tf.loadGraphModel('/model/style-transfer/saved_model_style_js/model.json')
                         //引用风格图特征
-                        transferNet = await tf.loadGraphModel('https://reiinakano.com/arbitrary-image-stylization-tfjs/saved_model_transformer_js/model.json')
+                        transferNet = await tf.loadGraphModel('/model/style-transfer/saved_model_transformer_js/model.json')
                         status.innerText = ''
                     }
 
