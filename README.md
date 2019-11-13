@@ -13,8 +13,10 @@
 > 可识别的分类：https://github.com/tensorflow/tfjs-models/blob/master/mobilenet/src/imagenet_classes.ts
 - [目标识别](https://allan5.com/FE-AI/object_detection.html "目标识别")    ` 支持摄像头`
 > 可识别的目标：https://github.com/tensorflow/tfjs-models/blob/master/coco-ssd/src/classes.ts
-- [人物分割](https://allan5.com/FE-AI/bodypix.html "人物分割")  ` 支持摄像头`
+- [人物分割1.0](https://allan5.com/FE-AI/bodypix.html "人物分割")  ` 支持摄像头`
 > 可识别人体轮廓
+- [人物分割2.0](https://allan5.com/FE-AI/bodypix2.html "人物分割")  ` 支持摄像头`
+> 可同时识别多个人体轮廓
 - [姿态检测](https://allan5.com/FE-AI/posenet.html "姿态检测")  ` 支持摄像头`
 > 识别人体关键点
 
