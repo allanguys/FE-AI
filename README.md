@@ -1,7 +1,8 @@
 # 前端智能
 
 ## DEMO
-
+- [风格迁移](https://allan5.com/FE-AI/style-transfer.html "风格转移")
+> 抽取图像上的特征应用到其他图片
 - [看图识花](https://allan5.com/FE-AI/flower.html "看图识花")
 > 可识别的分类：雏菊、蒲公英、玫瑰、向日葵、郁金香
 - [人脸检测](https://allan5.com/FE-AI/face-api.html "人脸检测")  ` 支持摄像头`
