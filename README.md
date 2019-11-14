@@ -27,7 +27,7 @@
 - 在本地预览和调试，建议使用http-server: 
 
 
-
+```bash
     git clone https://github.com/allanguys/FE-AI.git
     
     cd FE-AI
@@ -35,7 +35,7 @@
     npm install http-server -g
     
     http-server
-
+```
 
 - 为保持项目尽量简单易懂，暂未兼容多端和多数浏览器，请用chrome 70+测试访问。
 
