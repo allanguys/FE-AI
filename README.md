@@ -22,12 +22,26 @@
 
 
 ## Tips
+- 因为CN的特殊的网络环境，大部分模型已下载到本地。但是没有翻墙的环境访问github速度较慢，推荐下载到本地查看。
 
-- 在本地预览和调试，建议使用http-server: ` npm install http-server -g` 
+- 在本地预览和调试，建议使用http-server: 
+
+
+
+    git clone https://github.com/allanguys/FE-AI.git
+    
+    cd FE-AI
+    
+    npm install http-server -g
+    
+    http-server
+
 
 - 为保持项目尽量简单易懂，暂未兼容多端和多数浏览器，请用chrome 70+测试访问。
 
 - 为了保持每个DEMO都单独简单可用可读，未抽离梳理统一公用函数，未美化代码。
 
-- 因为CN的特殊的网络环境，大部分模型已下载到本地，如发现示例改变参数后无法加载模型，请反馈。
+- 想tfjs开源的姿态识别，参数的不同会导致加载的模型不同，本示例只下载了默认参数的模型。
+
+
 
