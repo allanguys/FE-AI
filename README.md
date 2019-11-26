@@ -7,6 +7,7 @@
 > 可识别的分类：雏菊、蒲公英、玫瑰、向日葵、郁金香
 
 > 分类识别模型训练步骤：https://github.com/allanguys/blog/issues/4 ` 文章第4部分`
+
 - [人脸检测](https://allan5.com/FE-AI/face-api.html "人脸检测")  ` 支持摄像头`
 > 识别人脸、情绪、年龄
 - [手部追踪](https://allan5.com/FE-AI/handtrack.html "手部追踪") 
